@@ -139,9 +139,15 @@ else
     
     % base path
     if ~exist(p.base_path, 'dir')
-        error('base_path = %s : Base directory does not exist.', p.base_path);
+        if exist(parent(p.base_path), 'dir')
+            verbose(1, 'Making base_path = %s', p.base_path);
+            mkdir(p.base_path);
+        else
+            error('base_path = %s : Base directory (or parent) does not exist.', p.base_path);
+        end
+    else
+        verbose(2, 'base_path = %s', p.base_path);
     end
-    verbose(2, 'base_path = %s', p.base_path);
     
     % Save data path
     for ii = 1:length(p.scan_number)
@@ -158,6 +164,9 @@ else
             verbose(2, 'save_path = %s', p.save_path{ii});
         end
     else
+        if ~iscell(p.save_path)
+            p = str2cell(p, 'save_path');
+        end
         % not enough save paths; replicate
         if length(p.scan_number) > length(p.save_path)
             verbose(1, 'Number of save paths does not match number of scans. I will use only the first save path.')
@@ -272,6 +281,20 @@ else
         p.(path{1}) = abspath(p.(path{1}));
     end
     
+end
+end
+
+function p = parent(path)
+split = strsplit(path, filesep);
+if split(end) == ""
+    split = split(1:end-2);
+else
+    split = split(1:end-1);
+end
+if split == [""]
+    p = "/";
+else
+    p = strjoin(split, filesep);
 end
 end
 

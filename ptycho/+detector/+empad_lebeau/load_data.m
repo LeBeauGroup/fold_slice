@@ -16,9 +16,10 @@ ny = str2double(raw_parts{end}(2:end));
 nx = str2double(raw_parts{end-1}(2:end));
 
 if ny ~= p.scan.ny || nx ~= p.scan.nx
-    error("Reconstruction scan size does not match filename scan size")
+    verbose(1, sprintf("Warning: Specified scan size %dx%d does not match filename scan size %dx%d", p.scan.nx, p.scan.ny, nx, ny));
 end
 
+% TODO better errors here
 data = single(fread(fopen(file,'r'), 128*130*nx*ny,'float32'));
 % resize as 4D
 data = reshape(data, 128, 130, nx, ny);
