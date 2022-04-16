@@ -75,7 +75,12 @@ end
 
 if nargin >= 2
     if verbose_level >= varargin{1}
-        do_output(varargin{1}, sprintf(varargin{2},varargin{3:end}), verbose_level, verbose_prefix);
+        if nargin >= 3
+            out = sprintf(varargin{2}, varargin{3:end});
+        else
+            out = varargin{2};
+        end
+        do_output(varargin{1}, out, verbose_level, verbose_prefix);
     end
 end    
 
