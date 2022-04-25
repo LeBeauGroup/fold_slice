@@ -12,8 +12,10 @@ file = files{p.scanID};
 
 [~, filename, ~] = fileparts(file);
 raw_parts = strsplit(filename, '_');
-ny = str2double(raw_parts{end}(2:end));
-nx = str2double(raw_parts{end-1}(2:end));
+x_part = raw_parts(startsWith(raw_parts, "x"));
+y_part = raw_parts(startsWith(raw_parts, "y"));
+ny = str2double(x_part{1}(2:end));
+nx = str2double(y_part{1}(2:end));
 
 % TODO better errors here
 data = single(fread(fopen(file,'r'), 128*130*nx*ny,'float32'));
@@ -27,6 +29,19 @@ data = flip(data, 1); % reciprocal-space y dimension is flipped
 %data = flip(data, 3);
 %data = flip(data, 4);
 %data = flip(data, 2);
+
+if isfield(p.detector, 'sim') && p.detector.sim
+    % scale simulated data by beam current
+    if isfield(p.detector, 'beam_current')
+        current = p.detector.beam_current;
+    else
+        current = 30.;
+    end
+    data = data .* (current * 6241.51); % I*1e-12 C/s / (1.602e-19 C/elec) * 1 ms
+else
+    % scale experimental data by single-electron intensity
+    data = data ./ 580;
+end
 
 if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     crop = num2cell(p.detector.crop);
