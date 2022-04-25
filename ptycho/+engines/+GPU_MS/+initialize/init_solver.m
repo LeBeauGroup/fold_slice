@@ -251,7 +251,7 @@ function [self, cache] = init_solver(self,par)
         distance = self.z_distance(min(end,i));
 
         if ~isinf(distance)
-            verbose(2, 'Layer %i distance %g um  ', i, distance*1e6 )
+            verbose(2, 'Layer %i distance %g nm  ', i, distance/10 )
         end
         modes{i}.distances = distance;
         if is_used(par, 'fly_scan') && (~isfield(modes{i}, 'probe_positions') || isempty(modes{i}.probe_positions) )
