@@ -24,11 +24,8 @@ data = reshape(data, 128, 130, nx, ny);
 % crop junk rows
 data = data(1:128, 1:128, :, :);
 
-data = permute(data, [2, 1, 4, 3]); % column is y
-data = flip(data, 1); % reciprocal-space y dimension is flipped
-%data = flip(data, 3);
-%data = flip(data, 4);
-%data = flip(data, 2);
+data = permute(data, [1, 2, 4, 3]); % in ptychoshelves y is fast scan dir
+data = flip(data, 2); % reciprocal-space y dimension is flipped
 
 if isfield(p.detector, 'sim') && p.detector.sim
     % scale simulated data by beam current
