@@ -28,7 +28,7 @@ for ii = 1:p.numscans
                 end
             end
             
-            if isfield(p.scan, 'custom_flip') && p.scan.custom_flip(3) % switch x/y by ZC
+            if ~(isfield(p.scan, 'custom_flip') && p.scan.custom_flip(3)) % switch x/y by ZC
             	positions_real=fliplr(positions_real);
             end
             

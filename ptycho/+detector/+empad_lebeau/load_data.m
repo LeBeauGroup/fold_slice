@@ -23,9 +23,8 @@ data = single(fread(fopen(file,'r'), 128*130*nx*ny,'float32'));
 data = reshape(data, 128, 130, nx, ny);
 % crop junk rows
 data = data(1:128, 1:128, :, :);
-
-data = permute(data, [1, 2, 4, 3]); % in ptychoshelves y is fast scan dir
-data = flip(data, 2); % reciprocal-space y dimension is flipped
+% flip reciprocal x
+data = flip(data, 1);
 
 if isfield(p.detector, 'sim') && p.detector.sim
     % scale simulated data by beam current
@@ -44,9 +43,9 @@ if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     crop = num2cell(p.detector.crop);
     [min_x, max_x, min_y, max_y] = crop{:};
     utils.verbose(2, "Cropping data to %d:%d x %d:%d", min_x, max_x, min_y, max_y)
-    data = data(:, :, colon(min_y, max_y), colon(min_x, max_x));
-    ny = size(data, 3);
-    nx = size(data, 4);
+    data = data(:, :, colon(min_x, max_x), colon(min_y, max_y));
+    nx = size(data, 3);
+    ny = size(data, 4);
 end
 
 if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
