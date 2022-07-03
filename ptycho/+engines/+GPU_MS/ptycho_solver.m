@@ -376,26 +376,7 @@ for iter =  (1-par.initial_probe_rescaling):par.number_iterations
         end
     end
     
-    %% suppress large amplitude of object, Added by ZC
-    if iter >= par.object_change_start && par.amplitude_threshold_object < inf
-        for kk = 1:par.Nscans
-            for ll = 1:par.Nlayers
-                temp = abs(self.object{kk,ll});
-                temp (temp > par.amplitude_threshold_object) = 1;
-                self.object{kk,ll} = temp.* exp(1i* angle(self.object{kk,ll}));
-            end
-        end
-    end
     
-    %% weak positivity object 
-    if iter > par.object_change_start && any(par.positivity_constraint_object)
-        for kk = 1:par.Nscans
-            for ll = 1:par.Nlayers 
-                 self.object{kk,ll}(cache.object_ROI{:}) = ...
-                     Gfun(@positivity_constraint_object,self.object{kk,ll}(cache.object_ROI{:}), par.positivity_constraint_object);
-            end
-        end
-    end
     
     %% probe orthogonalization 
     if par.ortho_probe_modes &&  par.probe_modes > par.Nrec && (~is_method(par, 'DM') || iter == par.number_iterations)
@@ -508,7 +489,7 @@ for iter =  (1-par.initial_probe_rescaling):par.number_iterations
         catch err
             warning(err.message)
             if verbose()  > 1
-            	keyboard
+            	%keyboard
             end
         end
     end
@@ -838,10 +819,6 @@ end
                     fsc_score{end,1}.resolution,mean(self.pixel_size)*1e9/fsc_score{end,1}.resolution, fsc_score{end,1}.AUC)
     end
 
-end
-
-function x = positivity_constraint_object(x, relax)
-   x = relax.*abs(x) + (1-relax).*x;
 end
 
 function object = regular_object_out_regions(object, illum, max_illum, delta)

@@ -129,6 +129,24 @@ function [object, object_upd_sum] = update_object(self, object, object_upd_sum, 
             object{kk,layer} =  object{kk,layer}+object_upd_sum{kk,layer}; 
         end
     end
+
+    %% suppress large amplitude of object
+    if par.amplitude_threshold_object < inf
+        for kk = obj_ids
+            over = (abs(self.object{kk,layer}) > par.amplitude_threshold_object);
+            if any(over, 'all')
+                %keyboard;
+            end
+            self.object{kk,layer}(over) = par.amplitude_threshold_object * exp(1i* angle(self.object{kk,layer}(over)));
+        end
+    end
+    
+    %% weak positivity object 
+    if any(par.positivity_constraint_object)
+        for kk = 1:par.Nscans
+             self.object{kk,layer} = Gfun(@positivity_constraint_object,self.object{kk,layer}, par.positivity_constraint_object);
+        end
+    end
     
     if verbose()> 3
         % show applied subsets (update amplitude) and probe update amplitude 
@@ -160,4 +178,8 @@ end
 function object_upd_sum = object_sum_update_Gfun(object_upd_sum, obj_illum_sq_sum, max)
     % final update is just weighted mean of the updared object views  
     object_upd_sum =  object_upd_sum ./ sqrt(obj_illum_sq_sum.^2+ max.^2);
+end
+
+function x = positivity_constraint_object(x, relax)
+   x = relax.*abs(x) + (1-relax).*x;
 end
