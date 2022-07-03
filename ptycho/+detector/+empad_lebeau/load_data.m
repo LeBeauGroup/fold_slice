@@ -17,6 +17,7 @@ y_part = raw_parts(startsWith(raw_parts, "y"));
 ny = str2double(x_part{1}(2:end));
 nx = str2double(y_part{1}(2:end));
 
+utils.verbose(2, "Opening '%s'", file);
 % TODO better errors here
 data = single(fread(fopen(file,'r'), 128*130*nx*ny,'float32'));
 % resize as 4D
@@ -36,7 +37,7 @@ if isfield(p.detector, 'sim') && p.detector.sim
     data = data .* (current * 6241.51); % I*1e-12 C/s / (1.602e-19 C/elec) * 1 ms
 else
     % scale experimental data by single-electron intensity
-    data = data ./ 580;
+    data = data ./ 375;
 end
 
 if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
@@ -55,7 +56,14 @@ if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
     end
 end
 
-utils.verbose(1, strcat('Loaded data from: ', file));
+% if isfield(p, 'upsampling') && p.upsampling > 0
+%     factor = 2^p.upsampling;
+%     utils.verbose(2, "Upsampling data by factor of %d", factor);
+%     data = utils.unbinning_2D(data, factor) / factor^2;
+%     p.asize = p.asize .* factor;
+% end
+
+utils.verbose(1, "Loaded data from: '%s'", file);
 
 detStorage.data = data;
 end

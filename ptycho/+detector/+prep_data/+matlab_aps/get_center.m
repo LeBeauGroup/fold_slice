@@ -48,15 +48,23 @@ else
     verbose(2, sprintf('Using center: (%d, %d)', ctr(1), ctr(2)));
 end
 %}
+
 verbose(2, sprintf('Using center: (%d, %d)', ctr(1), ctr(2)));
 detStorage.ctr = ctr;
 
-if ~p.prealign_FP
-    detStorage.lim_inf = ctr-p.asize/2;
-    detStorage.lim_sup = ctr+p.asize/2-1;
+if p.prealign_FP
+    asize = p.prealign.asize;
 else
-    detStorage.lim_inf = ctr-p.prealign.asize/2;
-    detStorage.lim_sup = ctr+p.prealign.asize/2-1;
+    asize = p.asize;
+end
+
+if isfield(p.detectors(p.scanID).params, 'asize')
+    detector_asize = p.detectors(1).params.asize;
+    detStorage.lim_inf = ctr - detector_asize/2;
+    detStorage.lim_sup = ctr + detector_asize/2 - 1;
+else
+    detStorage.lim_inf = mask_size/2 + ctr-asize/2;
+    detStorage.lim_sup = mask_size/2 - ctr+asize/2 - 1;
 end
 
 verbose(2, sprintf('Selected region: (''RowFrom'', %d, ''RowTo'', %d, ''ColumnFrom'', %d, ''ColumnTo'', %d)', detStorage.lim_inf(1), detStorage.lim_sup(1), detStorage.lim_inf(2), detStorage.lim_sup(2)));

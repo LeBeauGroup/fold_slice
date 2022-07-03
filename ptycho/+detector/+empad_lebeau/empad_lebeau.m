@@ -4,6 +4,8 @@ det.pixel_size = 1;
 
 det.data_stored = true;
 
+det.asize = [128 128];
+
 det.geometry.sz = [256 256];
 det.geometry.mask = [];
 

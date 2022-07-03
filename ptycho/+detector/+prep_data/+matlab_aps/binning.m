@@ -14,6 +14,17 @@ function [ p ] = binning( p )
 data = p.detectors(p.scanID).detStorage.data;
 fmask = p.detectors(p.scanID).detStorage.fmask;
 
+%% pad measured data
+
+data_size = size(data);
+data_size = data_size(1:2);
+if any(p.asize > data_size)
+    utils.verbose(2, "Padding reciprocal space to %dx%d", p.asize(1), p.asize(2));
+    %shift = (p.asize - data_size) / 2;
+    data = utils.imshift_fast(data, 0, 0, p.asize, 'nearest');
+    fmask = utils.imshift_fast(fmask, 0, 0, p.asize, 'nearest', 1);
+end
+
 %% apply binning or upsampling on the measured data 
 
 if isfield(p.detector,'binning')&& p.detector.binning
