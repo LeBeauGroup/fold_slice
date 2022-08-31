@@ -677,7 +677,7 @@ for iter =  (1-par.initial_probe_rescaling):par.number_iterations
         end
         
         %% save object magnitude
-        if any(ismember({'obj_mag','obj_ph_sum','obj_mag_stack'}, par.save_images))
+        if any(ismember({'obj_mag','obj_mag_sum','obj_mag_stack'}, par.save_images))
             object_temp = Ggather(self.object{1});
             object_roi_temp = object_temp(cache.object_ROI{:},:);
             N_obj_roi = size(object_roi_temp);
@@ -759,6 +759,9 @@ end
     end
     for ii = 1:length(self.object)
         aobj = abs(self.object{ii});
+        % CG: when 1e-3 <= amp <= MAX_OBJ: amp * value / amp = value
+        %     when amp < 1e-3: amp * value / 1e-3 = amp**2 * phase / 1e-3
+        %     when amp > MAX_OBJ: MAX_OBJ * value / amp = MAX_OBJ * phase
         self.object{ii} = min(MAX_OBJ, aobj) .* self.object{ii} ./ max(aobj, 1e-3);
     end
     
