@@ -123,7 +123,7 @@ function plot_results(self, cache, par, fourier_error,probe_positions)
         axis xy
         ylabel('Reconstruction in fake colors')
         axes(ha(3))
-        probe = utils.prop_free_nf(probe, self.lambda, sum(self.z_distance(1:end-1))/2, self.pixel_size); 
+        %probe = utils.prop_free_nf(probe, self.lambda, sum(self.z_distance(1:end-1))/2, self.pixel_size);
         imagesc_hsv(probe, params{:} );
  
         
