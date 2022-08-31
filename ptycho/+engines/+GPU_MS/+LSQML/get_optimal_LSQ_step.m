@@ -25,7 +25,8 @@ function  [beta_probe, beta_object] = get_optimal_LSQ_step(self,chi,dO,dP,O,P, p
     import engines.GPU_MS.GPU_wrapper.*
     import math.*
     global gpu use_gpu
-    if ~isempty(gpu); wait(gpu); end 
+    if ~isempty(gpu); wait(gpu); end
+    gpu_mex = true;
    
     grouping = size(chi,3); 
     lambda_0 =  eps(single(1)) / prod(self.Np_p);
@@ -33,7 +34,7 @@ function  [beta_probe, beta_object] = get_optimal_LSQ_step(self,chi,dO,dP,O,P, p
     lambda_LSQ = 0.1;  % add some small regularization to avoid instabilities
 
     
-if use_gpu 
+if use_gpu && gpu_mex
     % fast mex based CUDA version 
     if size(dP,3) == grouping 
         p_ind = 1:grouping;   % one update for each position 

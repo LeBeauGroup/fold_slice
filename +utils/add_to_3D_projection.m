@@ -83,7 +83,10 @@ function full_array = add_to_3D_projection(small_array,full_array, positions_off
     if size(positions_offset,1)==1
         positions_offset = repmat(positions_offset, numel(indices), 1);
     end
-    if use_MEX && ~isa(full_array, 'gpuArray') && ~verLessThan('matlab', '9.4') && ~islogical(small_array)  % logical arrays not yet implemented
+    full_array = gather(full_array);
+    small_array = gather(small_array);
+
+    if use_MEX && ~verLessThan('matlab', '9.4') && ~islogical(small_array)  % logical arrays not yet implemented
         %% run fast MEX-based code if possible 
         try
             add_to_3D_projection_mex(small_array,full_array, int32(positions_offset), int32(indices),add_values>0,add_atomic>0);

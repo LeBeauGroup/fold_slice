@@ -80,6 +80,7 @@ function object = set_views(object, object_update, layer,object_id, indices, cac
     import engines.GPU_MS.shared.*
     import utils.verbose
     global use_gpu
+    gpu_mex = true;
     
     if nargin < 8
         skip_ind = [];
@@ -96,7 +97,7 @@ function object = set_views(object, object_update, layer,object_id, indices, cac
             unq_scans = unique(scan_ids);
         end
         if length(unq_scans)> 1
-           if ~isempty(use_gpu) && use_gpu && isa(object{1}, 'gpuArray') && isa(object_update, 'gpuArray') 
+           if gpu_mex && ~isempty(use_gpu) && use_gpu && isa(object{1}, 'gpuArray') && isa(object_update, 'gpuArray') 
                if size(object,1) == 1
                     % shared object or single object 
                     ind_ok{1} = uint16(1:length(indices));
@@ -134,13 +135,16 @@ function object = set_views(object, object_update, layer,object_id, indices, cac
     else
         ind_ok = uint16(1:length(indices)); 
     end
-    if isa(object, 'gpuArray')
+    if gpu_mex && isa(object, 'gpuArray')
         %% USE CUDA MEX FOR GPU 
         object = set_views_gpu(object,object_update,cache.oROI_s{min(object_id,end)},indices,ind_ok); 
     else
         %% USE CPU
         positions = int32([cache.oROI_s{min(end,object_id)}{1}(indices,1), cache.oROI_s{min(end,object_id)}{2}(indices,1)]);
         object = utils.add_to_3D_projection(object_update,object, positions, ind_ok,true); 
+        if isa(object_update, 'gpuArray')
+            object = gpuArray(object);
+        end
     end
     
     if is_cell

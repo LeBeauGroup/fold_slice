@@ -80,9 +80,12 @@ function small_array = get_from_3D_projection(small_array, full_array, positions
         positions_offset = repmat(positions_offset, size(small_array,3), 1);
     end
     positions_offset = int32(positions_offset);
-    indices= int32(indices); 
-    
-    if use_MEX && ~isa(full_array, 'gpuArray') && ~verLessThan('matlab', '9.4') && ~islogical(small_array)  % logical arrays not yet implemented
+    indices= int32(indices);
+
+    full_array = gather(full_array);
+    small_array = gather(small_array);
+
+    if use_MEX && ~verLessThan('matlab', '9.4') && ~islogical(small_array)  % logical arrays not yet implemented
         %% run fast MEX-based code if possible 
         try
             get_from_3D_projection_mex(small_array,full_array, positions_offset, indices)
@@ -99,8 +102,6 @@ function small_array = get_from_3D_projection(small_array, full_array, positions
         end
        return 
     end
-
-
     
     %% simple matlab based version that may be too slow 
     for ii = 1:size(positions_offset,1)
