@@ -148,11 +148,12 @@ void mexFunction(int nlhs, mxArray *plhs[],
     const unsigned int Np_pp = mxGPUGetNumberOfElements(m_positions_x);
     
 
-    if (Np_pp < MAX_IND_READ) {
-            cudaMemcpyToSymbol(gC_pos_X, p_positions_x, Np_pp*sizeof(uint16_T), 0, cudaMemcpyHostToDevice);
-            cudaMemcpyToSymbol(gC_pos_Y, p_positions_y, Np_pp*sizeof(uint16_T), 0, cudaMemcpyHostToDevice);
-            checkLastError("after cudaMemcpyToSymbol pos");
-        } 
+    if (Np_pp > MAX_IND_READ) {
+        mexErrMsgIdAndTxt(errId, "Maximal size of input block exceeded");
+    }
+    cudaMemcpyToSymbol(gC_pos_X, p_positions_x, Np_pp*sizeof(uint16_T), 0, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(gC_pos_Y, p_positions_y, Np_pp*sizeof(uint16_T), 0, cudaMemcpyHostToDevice);
+    checkLastError("after cudaMemcpyToSymbol pos");
 
     for (int l=0; l<Ncells; l++)
     {
@@ -217,6 +218,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
 
         //mexPrintf("Blocks %i %i %i \n ", dimThread.x, dimThread.y, dimThread.z);
 
+		// this is probably slightly broken
         if (Np_pp > MAX_IND_READ) {
             //mexPrintf( "More than %i positions may be slow \n", MAX_IND_READ);
         } else {
