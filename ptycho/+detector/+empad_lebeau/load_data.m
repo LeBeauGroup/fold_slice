@@ -56,6 +56,13 @@ if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
     end
 end
 
+if isfield(p.detector, 'bg_sub') && p.detector.bg_sub
+    bg = quantile(data, 0.01, 'all');
+    utils.verbose(2, "Subtracting background intensity (%d)...", bg);
+
+    data = max(data - bg, 0.);
+end
+
 % if isfield(p, 'upsampling') && p.upsampling > 0
 %     factor = 2^p.upsampling;
 %     utils.verbose(2, "Upsampling data by factor of %d", factor);
@@ -64,7 +71,7 @@ end
 % end
 
 utils.verbose(1, "Loaded data from: '%s'", file);
-
 detStorage.data = data;
+
 end
 
