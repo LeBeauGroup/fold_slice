@@ -11,51 +11,33 @@ if ~isfield(par,'range'); par.range = [0,0]; end
 if ~isfield(par,'norm_single_slice'); par.norm_single_slice = false; end
 if ~isfield(par,'name'); par.name = 'image_stack.tiff'; end
 
-if any(par.range)
-    range = par.range;
+if par.norm_single_slice
+    if any(par.range)
+        range = par.range;
+    else
+        % range based on entire image (TODO: use quantile here?)
+        range = [min(input(:)),max(input(:))];
+    end
 else
-    range = [min(input(:)),max(input(:))];
+    % call mat2gray without limits, auto-scaling for each slice
+    range = [0, 0];
 end
 
 switch par.axis
     case 3
-        if par.norm_single_slice
-            imwrite(mat2gray(input(:,:,1)),par.name,'tiff')
-        else
-            imwrite(mat2gray(input(:,:,1),range),par.name,'tiff')
-        end
+        imwrite(mat2uint16(input(:, :, 1), range), par.name, 'tiff')
         for i=2:size(input,3)
-            if par.norm_single_slice
-                imwrite(mat2gray(input(:,:,i)),par.name,'tiff','WriteMode','append')
-            else
-                imwrite(mat2gray(input(:,:,i),range),par.name,'tiff','WriteMode','append')
-            end
+            imwrite(mat2uint16(input(:, :, i), range), par.name, 'tiff', 'WriteMode', 'append')
         end
     case 2
-        if par.norm_single_slice
-            imwrite(mat2gray(squeeze(input(:,1,:))),par.name,'tiff')
-        else
-            imwrite(mat2gray(squeeze(input(:,1,:)),range),par.name,'tiff')
-        end
-        for i=2:size(input,2)
-            if par.norm_single_slice
-                imwrite(mat2gray(squeeze(input(:,i,:))),par.name,'tiff','WriteMode','append')
-            else
-                imwrite(mat2gray(squeeze(input(:,i,:)),range),par.name,'tiff','WriteMode','append')
-            end
+        imwrite(mat2uint16(input(:, 1, :), range), par.name, 'tiff')
+        for i=2:size(input,3)
+            imwrite(mat2uint16(input(:, i, :), range), par.name, 'tiff', 'WriteMode', 'append')
         end
     case 1
-        if par.norm_single_slice
-            imwrite(mat2gray(squeeze(input(1,:,:))),par.name,'tiff')
-        else
-            imwrite(mat2gray(squeeze(input(1,:,:)),range),par.name,'tiff')
-        end
-        for i=2:size(input,1)
-            if par.norm_single_slice
-                imwrite(mat2gray(squeeze(input(i,:,:))),par.name,'tiff','WriteMode','append')
-            else
-                imwrite(mat2gray(squeeze(input(i,:,:)),range),par.name,'tiff','WriteMode','append')
-            end
+        imwrite(mat2uint16(input(1, :, :), range), par.name, 'tiff')
+        for i=2:size(input,3)
+            imwrite(mat2uint16(input(i, :, :), range), par.name, 'tiff', 'WriteMode', 'append')
         end
     otherwise
         disp('Wrong axis! par.axis should be 1, 2, or 3.')
@@ -63,3 +45,11 @@ end
 
 end
 
+function [out] = mat2uint16(A, limits)
+    if any(limits)
+        scaled = mat2gray(A, limits);
+    else
+        scaled = mat2gray(A);
+    end
+    out = uint16(2^16 * scaled);
+end
