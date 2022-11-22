@@ -18,14 +18,17 @@ ny = str2double(x_part{1}(2:end));
 nx = str2double(y_part{1}(2:end));
 
 utils.verbose(2, "Opening '%s'", file);
-% TODO better errors here
-data = single(fread(fopen(file,'r'), 128*130*nx*ny,'float32'));
+if exist(file, 'file') ~= 2
+    error("Raw data file '%s' not found.", file);
+end
+data = single(fread(fopen(file,'r'), 128*130*nx*ny, 'float32'));
+
 % resize as 4D
 data = reshape(data, 128, 130, nx, ny);
-% crop junk rows
-data = data(1:128, 1:128, :, :);
-% flip reciprocal x
-data = flip(data, 1);
+% crop junk rows, flip reciprocal y axis
+data = data(:, 128:-1:1, :, :);
+% transpose reciprocal space
+data = permute(data, [2, 1, 3, 4]);
 
 if isfield(p.detector, 'sim') && p.detector.sim
     % scale simulated data by beam current
@@ -48,6 +51,9 @@ if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     nx = size(data, 3);
     ny = size(data, 4);
 end
+
+% flip scan
+data = data(:, :, nx:-1:1, ny:-1:1);
 
 if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
     % check raster scan dimensions
