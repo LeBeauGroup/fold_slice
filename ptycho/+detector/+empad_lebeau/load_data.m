@@ -14,8 +14,10 @@ file = files{p.scanID};
 raw_parts = strsplit(filename, '_');
 x_part = raw_parts(startsWith(raw_parts, "x"));
 y_part = raw_parts(startsWith(raw_parts, "y"));
-nx = str2double(x_part{1}(2:end));
-ny = str2double(y_part{1}(2:end));
+% NOTE: 'nx' and 'ny' are in fold_slice orientation,
+% which is transposed from output orientation
+ny = str2double(x_part{1}(2:end));
+nx = str2double(y_part{1}(2:end));
 
 utils.verbose(2, "Opening '%s'", file);
 if exist(file, 'file') ~= 2
@@ -24,7 +26,7 @@ end
 data = single(fread(fopen(file,'r'), 128*130*nx*ny, 'float32'));
 
 % resize as 4D
-data = reshape(data, 128, 130, ny, nx);
+data = reshape(data, 128, 130, nx, ny);
 % crop junk rows, flip reciprocal y axis
 data = data(:, 128:-1:1, :, :);
 % transpose reciprocal space
@@ -47,13 +49,19 @@ if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     crop = num2cell(p.detector.crop);
     [min_x, max_x, min_y, max_y] = crop{:};
     utils.verbose(2, "Cropping data to %d:%d x %d:%d", min_x, max_x, min_y, max_y)
-    data = data(:, :, colon(min_x, max_x), colon(min_y, max_y));
-    ny = size(data, 3);
-    nx = size(data, 4);
+    % crop in output orientation, not fold_slice orientation
+    data = data(:, :, colon(min_y, max_y), colon(min_x, max_x));
+    nx = size(data, 3);
+    ny = size(data, 4);
+
+    if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
+        p.scan.nx = nx;
+        p.scan.ny = ny;
+    end
 end
 
 % flip scan
-data = data(:, :, ny:-1:1, nx:-1:1);
+data = data(:, :, nx:-1:1, ny:-1:1);
 
 if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
     % check raster scan dimensions
@@ -62,13 +70,28 @@ if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
     end
 end
 
-if isfield(p.detector, 'poisson') && p.detector.poisson
+if isfield(p, 'tile') && ~isempty(p.tile) && ~all(p.tile == 1)
+    % tile patterns (useful for simulation)
+    tile = num2cell(p.tile);
+    [tile_x, tile_y] = tile{:};
+    utils.verbose(1, "Tiling data '%dx%d' in realspace", tile_x, tile_y);
+
+    % tile in output orientation
+    data = repmat(data, 1, 1, tile_y, tile_x);
+
+    if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
+        p.scan.nx = p.scan.nx * tile_y;
+        p.scan.ny = p.scan.ny * tile_x;
+    end
+end
+
+if isfield(p.detector, 'poisson') && ~isempty(p.detector.poisson) && p.detector.poisson
     % TODO do this after bg subtract?
     utils.verbose(2, "Applying poisson noise.");
     data = single(poissrnd(max(0., data)));
 end
 
-if isfield(p.detector, 'psf_sigma') && p.detector.psf_sigma
+if isfield(p.detector, 'psf_sigma') && ~isempty(p.detector.psf_sigma) && p.detector.psf_sigma > 0
     utils.verbose(2, "Applying gaussian PSF, sigma %f", p.detector.psf_sigma);
     sigma = p.detector.psf_sigma;
     ny = size(data, 1);
@@ -76,9 +99,10 @@ if isfield(p.detector, 'psf_sigma') && p.detector.psf_sigma
     ys = -floor(ny/2):ceil(ny/2)-1;
     xs = -floor(nx/2):ceil(nx/2)-1;
 
-    gaussian = exp(-(ys'.^2 + xs.^2)/(2*sigma^2)) / (sigma*sqrt(2*pi));
+    gaussian = exp(-(ys'.^2 + xs.^2)/(2*sigma^2));
+    gaussian = gaussian / sum(gaussian, 'all');
 
-    data = abs(fftshift(ifft2(fft2(fftshift(data)) .* fft2(fftshift(gaussian)))));
+    data = real(fftshift(ifft2(fft2(fftshift(data)) .* fft2(fftshift(gaussian)))));
 end
 
 % if isfield(p, 'upsampling') && p.upsampling > 0
