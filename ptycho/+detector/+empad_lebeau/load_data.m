@@ -32,6 +32,8 @@ data = data(:, 128:-1:1, :, :);
 % transpose reciprocal space
 data = permute(data, [2, 1, 3, 4]);
 
+size(data)
+
 if isfield(p.detector, 'sim') && p.detector.sim
     % scale simulated data by beam current
     if isfield(p.detector, 'beam_current')
@@ -55,8 +57,41 @@ if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     ny = size(data, 4);
 
     if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
+        positions = reshape(p.positions, p.scan.nx, p.scan.ny, 2);
+        positions = positions(min_y:max_y, min_x:max_x, :);
+        p.positions = reshape(positions, nx*ny, 2);
+        p.numpts = nx*ny;
+        p.scanidxs{1, 1} = 1:nx*ny;
+
         p.scan.nx = nx;
         p.scan.ny = ny;
+    end
+end
+
+if isfield(p.detector, 'step') && ~isempty(p.detector.step)
+    % should broadcast
+    step = zeros(1, 2);
+    step(:) = p.detector.step;
+    utils.verbose(1, "Using every %dx%d scan position", step(1), step(2)); 
+
+    data = data(:, :, 1:step(1):size(data, 3), 1:step(2):size(data, 4));
+    nx = size(data, 3);
+    ny = size(data, 4);
+    utils.verbose(1, "New size: %dx%d", nx, ny); 
+
+    utils.verbose(1, "Data shape: %dx%dx%dx%d", size(data, 1), size(data, 2), size(data, 3), size(data, 4));
+
+    if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
+        positions = reshape(p.positions, p.scan.nx, p.scan.ny, 2);
+        positions = positions(1:step(1):p.scan.nx, 1:step(2):p.scan.ny, :);
+        p.positions = reshape(positions, nx*ny, 2);
+        p.numpts = nx*ny;
+        p.scanidxs{1, 1} = 1:nx*ny;
+
+        p.scan.nx = nx;
+        p.scan.ny = ny;
+        p.scan.step_size_x = p.scan.step_size_x * step(1);
+        p.scan.step_size_y = p.scan.step_size_y * step(2);
     end
 end
 
@@ -83,6 +118,7 @@ if isfield(p, 'tile') && ~isempty(p.tile) && ~all(p.tile == 1)
         p.scan.nx = p.scan.nx * tile_y;
         p.scan.ny = p.scan.ny * tile_x;
     end
+    p.scanidxs{1, 1} = 1:nx*ny;
 end
 
 if isfield(p.detector, 'poisson') && ~isempty(p.detector.poisson) && p.detector.poisson
