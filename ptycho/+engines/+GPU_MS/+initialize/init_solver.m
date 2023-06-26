@@ -321,7 +321,16 @@ function [self, cache] = init_solver(self,par)
             %% near field factor            
             %ASM =  exp( modes{i}.distances(end)* cache.ASM_difference);
             % modified by YJ: use H instead of dH (which is an approximation)
-            [~,ASM,~,~] = near_field_evolution(ones(self.Np_p), modes{i}.distances(end), self.lambda,  self.pixel_size .*self.Np_p, true );
+            %[tiltx, tilty] = par.p.sample_rotation_angles(1:2);
+            if check_option(par.p, 'apply_tilted_plane_correction', 'propagation')
+                tiltx = par.p.sample_rotation_angles(1) * pi/180;
+                tilty = par.p.sample_rotation_angles(2) * pi/180;
+            else
+                tiltx = 0;
+                tilty = 0;
+            end
+
+            [~,ASM,~,~] = near_field_evolution(ones(self.Np_p), modes{i}.distances(end), self.lambda, self.pixel_size .*self.Np_p, true, tiltx, tilty);
             ASM = fftshift(ASM);
             modes{i}.ASM_factor = ASM;
             modes{i}.cASM_factor = conj(ASM);
@@ -345,8 +354,8 @@ function [self, cache] = init_solver(self,par)
             modes{i}.support_back_propagation_factor = [];
         end
         
-        modes{i}.tilted_plane_propagate_fwd = tilted_plane_propagate_fwd;
-        modes{i}.tilted_plane_propagate_back = tilted_plane_propagate_back;
+        modes{i}.tilted_plane_propagate_fwd = [];
+        modes{i}.tilted_plane_propagate_back = [];
     end
     
       
