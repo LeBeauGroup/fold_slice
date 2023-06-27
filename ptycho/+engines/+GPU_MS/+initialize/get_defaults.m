@@ -41,6 +41,10 @@ function [param] = get_defaults
     param.verbose_level = 1;
     param.plot_results_every = 50;
 
+    % propagator tilt (in mrad)
+    param.tilt_x = 0;
+    param.tilt_y = 0;
+
     param.remove_residues = false; % autodetect and remove phase residua 
     param.extension = ''; 
 

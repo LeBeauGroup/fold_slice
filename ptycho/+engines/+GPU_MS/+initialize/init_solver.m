@@ -320,15 +320,8 @@ function [self, cache] = init_solver(self,par)
         if ~isinf(modes{i}.distances(end)) % Forward Fresnel propagator in k-space, ASM, commented by ZC
             %% near field factor            
             %ASM =  exp( modes{i}.distances(end)* cache.ASM_difference);
-            % modified by YJ: use H instead of dH (which is an approximation)
-            %[tiltx, tilty] = par.p.sample_rotation_angles(1:2);
-            if check_option(par.p, 'apply_tilted_plane_correction', 'propagation')
-                tiltx = par.p.sample_rotation_angles(1) * pi/180;
-                tilty = par.p.sample_rotation_angles(2) * pi/180;
-            else
-                tiltx = 0;
-                tilty = 0;
-            end
+	    tiltx = par.tilt_x * 1e-3;
+	    tilty = par.tilt_y * 1e-3;
 
             [~,ASM,~,~] = near_field_evolution(ones(self.Np_p), modes{i}.distances(end), self.lambda, self.pixel_size .*self.Np_p, true, tiltx, tilty);
             ASM = fftshift(ASM);
