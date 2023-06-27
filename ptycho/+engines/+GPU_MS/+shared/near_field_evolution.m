@@ -116,7 +116,7 @@ function [u_1, H, h, dH] = near_field_evolution(u_0, z, lambda, extent, use_ASM_
 
         dH = ( -2*pi*1i*k2/(2*k) );
         
-        H = exp( -1i*pi*lambda*z * k2 + 2i*pi*z*(Kx'.*tan(tiltx) + Ky'.*tan(tilty)) );
+        H = exp( -1i*pi*lambda*z * k2 + 2i*pi*z*(Kx'.*tan(-tilty) + Ky'.*tan(-tiltx)) );
         h = [];
     end
     
