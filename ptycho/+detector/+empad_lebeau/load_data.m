@@ -31,21 +31,7 @@ data = reshape(data, 128, 130, nx, ny);
 data = data(:, 128:-1:1, :, :);
 % transpose reciprocal space
 data = permute(data, [2, 1, 3, 4]);
-
 size(data)
-
-if isfield(p.detector, 'sim') && p.detector.sim
-    % scale simulated data by beam current
-    if isfield(p.detector, 'beam_current')
-        current = p.detector.beam_current;
-    else
-        current = 30.;
-    end
-    data = data .* (current * 6241.51); % I*1e-12 C/s / (1.602e-19 C/elec) * 1 ms
-else
-    % scale experimental data by single-electron intensity
-    data = data ./ 375;
-end
 
 if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     crop = num2cell(p.detector.crop);
@@ -93,6 +79,32 @@ if isfield(p.detector, 'step') && ~isempty(p.detector.step)
         p.scan.step_size_x = p.scan.step_size_x * step(1);
         p.scan.step_size_y = p.scan.step_size_y * step(2);
     end
+end
+
+if isfield(p.detector, 'sim') && p.detector.sim
+    if isfield(p.detector, 'beam_dose') && ~isempty(p.detector.beam_dose)
+        utils.verbose(2, "Scaling data to dose: %.1f e/A^2", p.detector.beam_dose);
+        if ~(isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster")
+            error("Option 'beam_dose' requires a raster scan");
+        end
+        area = p.scan.step_size_x * p.scan.step_size_y; % A^2
+        scale = p.detector.beam_dose * area;
+    else
+        if isfield(p.detector, 'beam_current')
+            current = p.detector.beam_current;
+        else
+            current = 30.;
+        end
+        utils.verbose(2, "Scaling data to beam current: %.1f pA", current);
+        scale = current * 6241.51; % I*1e-12 C/s / (1.602e-19 C/elec) * 1 ms
+    end
+    % scale simulated data by beam current or dose
+    utils.verbose(3, "Scaling by: %.1f", scale);
+    data = data .* scale;
+else
+    % scale experimental data by single-electron intensity
+    % TODO grab from metadata
+    data = data ./ 375;
 end
 
 % flip scan
