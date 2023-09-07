@@ -57,8 +57,8 @@
 % 10.	This Agreement shall be governed by the material laws of Switzerland and any dispute arising out of this Agreement or use of the PROGRAM shall be brought before 
 %       the courts of Zürich, Switzerland. 
 
-
-function [u_1, H, h, dH] = near_field_evolution(u_0, z, lambda, extent, use_ASM_only)
+%tiltx, tilty rotation in radians
+function [u_1, H, h, dH] = near_field_evolution(u_0, z, lambda, extent, use_ASM_only, tiltx, tilty)
 
 
     H = [];
@@ -69,6 +69,10 @@ function [u_1, H, h, dH] = near_field_evolution(u_0, z, lambda, extent, use_ASM_
 
     if nargin < 5
         use_ASM_only = false; 
+    end
+    if nargin < 7
+        tiltx = 0;
+        tilty = 0;
     end
     
     extent = extent(:)' .* ones(1,2);
@@ -91,7 +95,7 @@ function [u_1, H, h, dH] = near_field_evolution(u_0, z, lambda, extent, use_ASM_
     % Undesamplling parameter
     F = mean( extent.^2 ./   (lambda(1) .* z .* Npix ));
         
-    if abs(F) < 1 && ~use_ASM_only
+    if abs(F) < 1 && ~use_ASM_only && tiltx == 0 && tilty == 0
         % farfield propagation 
         warning('Farfield regime, F/Npix=%g', F )
         Xrange = xgrid*extent(1);
@@ -105,13 +109,14 @@ function [u_1, H, h, dH] = near_field_evolution(u_0, z, lambda, extent, use_ASM_
                 
     else
         % standard ASM 
-        kx =  2 * pi .*xgrid / extent(1) * Npix(1) ;
-        ky =  2 * pi .*ygrid / extent(2) * Npix(2);
+        kx =  xgrid / extent(1) * Npix(1) ;
+        ky =  ygrid / extent(2) * Npix(2);
         [Kx, Ky] = meshgrid(kx, ky);
+        k2 = Kx'.^2 + Ky'.^2;
+
+        dH = ( -2*pi*1i*k2/(2*k) );
         
-        dH =  ( -1i*(Kx'.^2+Ky'.^2)/(2*k) );  
-        
-        H = exp( 1i*z*sqrt( k^2 - Kx'.^2-Ky'.^2));  % it make it a bit more sensitive to z distance
+        H = exp( -1i*pi*lambda*z * k2 + 2i*pi*z*(Kx'.*tan(-tilty) + Ky'.*tan(-tiltx)) );
         h = [];
     end
     

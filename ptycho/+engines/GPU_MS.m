@@ -172,12 +172,12 @@ function [p_out, fdb] = GPU_MS(p)
             verbose(0,'File %s Line: %i \n id:%s msg:%s ', ME.stack(1).name,  ME.stack(1).line, ME.identifier, ME.message)
  
         end
-        if verbose < 1
+        %if verbose < 1
             rethrow(ME)
-        else
-            fprintf('verbose %i', verbose)
-           keyboard 
-        end
+        %else
+        %    fprintf('verbose %i', verbose)
+            %keyboard 
+        %end
     end    
     
     if check_option(p, 'clean_residua')

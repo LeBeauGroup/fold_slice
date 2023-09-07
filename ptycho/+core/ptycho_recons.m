@@ -238,12 +238,12 @@ finishup = utils.onCleanup(@(x) ptycho_exit(x), p);
             try
                 p = core.save.save_results(p, 1);
             catch ME
-                if p.verbose_level > 3
-                    keyboard
-                else
+                %if p.verbose_level > 3
+                %    keyboard
+                %else
                     disp('#######  Failed to save data. ##########');
                     rethrow(ME)
-                end
+                %end
             end
                 
         else

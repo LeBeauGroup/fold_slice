@@ -97,12 +97,12 @@ if par.Nlayers > 1 && par.preshift_ML_probe
 end
 
 %% in case of tilted plane ptychography, tilt the provided probe 
-if any(par.p.sample_rotation_angles(1:2)) && check_option(par.p, 'apply_tilted_plane_correction', 'propagation') 
-    % apply propagators to the tilted plane 
-    for ii = 1:par.probe_modes % bugs! because modes are layers
-        self.probe{ii} = self.modes{ii}.tilted_plane_propagate_fwd(self.probe{ii});
-    end
-end
+%if any(par.p.sample_rotation_angles(1:2)) && check_option(par.p, 'apply_tilted_plane_correction', 'propagation') 
+%    % apply propagators to the tilted plane 
+%    for ii = 1:par.probe_modes % bugs! because modes are layers
+%        self.probe{ii} = self.modes{1}.tilted_plane_propagate_fwd(self.probe{ii});
+%    end
+%end
     
 
 global pprev;
@@ -763,12 +763,12 @@ end
     end
     
     %% in case of tilted plane ptychography, back-tilt to the detector probe 
-    if any(par.p.sample_rotation_angles(1:2)) && check_option(par.p, 'apply_tilted_plane_correction', 'propagation') 
-        % apply propagators to the tilted plane 
-        for ii = 1:par.probe_modes
-            self.probe{ii} = self.modes{ii}.tilted_plane_propagate_back(self.probe{ii});
-        end
-    end
+    %if any(par.p.sample_rotation_angles(1:2)) && check_option(par.p, 'apply_tilted_plane_correction', 'propagation') 
+    %    % apply propagators to the tilted plane 
+    %    for ii = 1:par.probe_modes
+    %        self.probe{ii} = self.modes{1}.tilted_plane_propagate_back(self.probe{ii});
+    %    end
+    %end
 
     %% in case of multilayer extension assume return the reconstructed probe in middle of the sample !! 
     if par.Nlayers > 1 && par.preshift_ML_probe
