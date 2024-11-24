@@ -81,6 +81,10 @@ if isfield(p.detector, 'step') && ~isempty(p.detector.step)
     end
 end
 
+if isfield(p.detector, 'fill_nan') && p.detector.fill_nan
+    data = utils.fillnan(data, 2);
+end
+
 if isfield(p.detector, 'sim') && p.detector.sim
     if isfield(p.detector, 'beam_dose') && ~isempty(p.detector.beam_dose)
         utils.verbose(2, "Scaling data to dose: %.1f e/A^2", p.detector.beam_dose);
