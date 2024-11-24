@@ -107,7 +107,7 @@ function [pos_update, probe_rotation,probe_scale,cache] = gradient_position_solv
     	momentum_memory = par.probe_position_search_momentum; % 
      
          % only in case far field ptychography 
-        if isinf(self.z_distance) && sum(cellfun(@length, cache.position_update_memory) > 0) > momentum_memory 
+        if sum(cellfun(@length, cache.position_update_memory) > 0) > momentum_memory
             %corr_level = zeros(momentum_memory,1);
             for ii = 1:momentum_memory
             	corr_level(ii) = mean(diag(corr(cache.position_update_memory{end}(ind,:), cache.position_update_memory{end-ii}(ind,:))));
@@ -127,7 +127,7 @@ function [pos_update, probe_rotation,probe_scale,cache] = gradient_position_solv
             cache.velocity_map_positions(ind,:) = cache.velocity_map_positions(ind,:)*(1-friction) + pos_update;
 	         % apply the velocity to the refined positions , if the postition updated are sufficiently small 
 
-             if max(abs(pos_update)) < 0.1
+             if max(abs(pos_update)) < par.max_pos_update_shift
                  ACC = norm2(pos_update + gain*cache.velocity_map_positions(ind,:)) / norm2(pos_update); 
                  pos_update = pos_update + gain*cache.velocity_map_positions(ind,:); 
              end 
