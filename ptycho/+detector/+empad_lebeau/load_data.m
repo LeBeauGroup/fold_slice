@@ -38,13 +38,13 @@ if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     [min_x, max_x, min_y, max_y] = crop{:};
     utils.verbose(2, "Cropping data to %d:%d x %d:%d", min_x, max_x, min_y, max_y)
     % crop in output orientation, not fold_slice orientation
-    data = data(:, :, colon(min_y, max_y), colon(min_x, max_x));
+    data = data(:, :, colon(min_x, max_x), colon(min_y, max_y));
     nx = size(data, 3);
     ny = size(data, 4);
 
     if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
         positions = reshape(p.positions, p.scan.nx, p.scan.ny, 2);
-        positions = positions(min_y:max_y, min_x:max_x, :);
+        positions = positions(min_x:max_x, min_y:max_y, :);
         p.positions = reshape(positions, nx*ny, 2);
         p.numpts = nx*ny;
         p.scanidxs{1, 1} = 1:nx*ny;
