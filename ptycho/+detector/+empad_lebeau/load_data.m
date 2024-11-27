@@ -42,6 +42,7 @@ if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     nx = size(data, 3);
     ny = size(data, 4);
 
+    % TODO: crop position list as well
     if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
         positions = reshape(p.positions, p.scan.nx, p.scan.ny, 2);
         positions = positions(min_y:max_y, min_x:max_x, :);
