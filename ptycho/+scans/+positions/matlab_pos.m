@@ -134,10 +134,23 @@ for ii = 1:p.numscans
             catch
                 error('Failed to load positions from %s', pos_file);
             end
+        
+        case 'list' % custom positions list stored in data
+            if isempty(p.scan.scan_positions) || ~ndims(p.scan.scan_positions)
+                error("scan_positions must be given as a list of probe positions");
+            end
+            positions_real = p.scan.scan_positions;
+            if size(positions_real, ndims(positions_real)) ~= 2
+                error("Invalid shape for scan_positions. Expected a shape of [Npos, 2]");
+            end
+            if ~ismatrix(positions_real)
+                % flatten 3D arrays into 2D
+                positions_real = reshape(positions_real, numel(positions_real) / 2, 2);
+            end
+            positions_real = flip(positions_real, 2); % flip [x, y] to [y, x]
         otherwise
             error('Unknown scan type %s.', p.scan.type);
     end
-    
     p.numpts(ii) = size(positions_real,1);
     p.positions_real = [p.positions_real ; positions_real];
 end
