@@ -14,10 +14,8 @@ file = files{p.scanID};
 raw_parts = strsplit(filename, '_');
 x_part = raw_parts(startsWith(raw_parts, "x"));
 y_part = raw_parts(startsWith(raw_parts, "y"));
-% NOTE: 'nx' and 'ny' are in fold_slice orientation,
-% which is transposed from output orientation
-ny = str2double(x_part{1}(2:end));
-nx = str2double(y_part{1}(2:end));
+nx = str2double(x_part{1}(2:end));
+ny = str2double(y_part{1}(2:end));
 
 utils.verbose(2, "Opening '%s'", file);
 if exist(file, 'file') ~= 2
@@ -29,56 +27,75 @@ data = single(fread(fopen(file,'r'), 128*130*nx*ny, 'float32'));
 data = reshape(data, 128, 130, nx, ny);
 % crop junk rows, flip reciprocal y axis
 data = data(:, 128:-1:1, :, :);
-% transpose reciprocal space
+% transpose reciprocal space (to column-major)
+% we keep the scan row major because that's how the raster is created
+% k_y, k_x, s_x, s_y
 data = permute(data, [2, 1, 3, 4]);
-size(data)
+utils.verbose(1, "Data shape: %dx%dx%dx%d", size(data, 1), size(data, 2), size(data, 3), size(data, 4));
+
+% NOTE: nx and ny MUST be updated as data changes size
 
 if isfield(p.detector, 'crop') && ~isempty(p.detector.crop)
     crop = num2cell(p.detector.crop);
     [min_x, max_x, min_y, max_y] = crop{:};
     utils.verbose(2, "Cropping data to %d:%d x %d:%d", min_x, max_x, min_y, max_y)
-    % crop in output orientation, not fold_slice orientation
-    data = data(:, :, colon(min_y, max_y), colon(min_x, max_x));
-    nx = size(data, 3);
-    ny = size(data, 4);
+    data = data(:, :, min_x:max_x, min_y:max_y);
 
-    % TODO: crop position list as well
-    if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
-        positions = reshape(p.positions, p.scan.nx, p.scan.ny, 2);
-        positions = positions(min_y:max_y, min_x:max_x, :);
-        p.positions = reshape(positions, nx*ny, 2);
-        p.numpts = nx*ny;
-        p.scanidxs{1, 1} = 1:nx*ny;
+    % crop scan positions as well
+    mask = false(nx, ny);
+    mask(min_x:max_x, min_y:max_y) = true;
+    mask = reshape(mask, [], 1);
 
-        p.scan.nx = nx;
-        p.scan.ny = ny;
+    if ~all(mask)
+        p.positions_real = p.positions_real(mask, :);
+        p.positions_orig = p.positions_orig(mask, :);
+        p.positions = p.positions(mask, :);
+
+        p.numpts = size(p.positions, 1);
+        p.scanidxs{1, 1} = 1:p.numpts;
+
+        nx = size(data, 3);
+        ny = size(data, 4);
+        utils.verbose(1, "New size: %dx%d", nx, ny); 
+
+        if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
+            p.scan.nx = nx;
+            p.scan.ny = ny;
+        end
     end
 end
 
 if isfield(p.detector, 'step') && ~isempty(p.detector.step)
     % should broadcast
     step = zeros(1, 2);
-    step(:) = p.detector.step;
+    step(:) = p.detector.step; % x, y
     utils.verbose(1, "Using every %dx%d scan position", step(1), step(2)); 
 
-    data = data(:, :, 1:step(1):size(data, 3), 1:step(2):size(data, 4));
-    nx = size(data, 3);
-    ny = size(data, 4);
-    utils.verbose(1, "New size: %dx%d", nx, ny); 
+    if any(step ~= 1)
+        data = data(:, :, 1:step(1):nx, 1:step(2):ny);
 
-    utils.verbose(1, "Data shape: %dx%dx%dx%d", size(data, 1), size(data, 2), size(data, 3), size(data, 4));
+        % crop scan positions as well
+        mask = false(nx, ny);
+        mask(1:step(1):nx, 1:step(2):ny) = true;
+        mask = reshape(mask, [], 1);
 
-    if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
-        positions = reshape(p.positions, p.scan.nx, p.scan.ny, 2);
-        positions = positions(1:step(1):p.scan.nx, 1:step(2):p.scan.ny, :);
-        p.positions = reshape(positions, nx*ny, 2);
-        p.numpts = nx*ny;
-        p.scanidxs{1, 1} = 1:nx*ny;
+        p.positions_real = p.positions_real(mask, :);
+        p.positions_orig = p.positions_orig(mask, :);
+        p.positions = p.positions(mask, :);
 
-        p.scan.nx = nx;
-        p.scan.ny = ny;
-        p.scan.step_size_x = p.scan.step_size_x * step(1);
-        p.scan.step_size_y = p.scan.step_size_y * step(2);
+        p.numpts = size(p.positions, 1);
+        p.scanidxs{1, 1} = 1:p.numpts;
+
+        nx = size(data, 3);
+        ny = size(data, 4);
+        utils.verbose(1, "New size: %dx%d", nx, ny); 
+
+        if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
+            p.scan.nx = nx;
+            p.scan.ny = ny;
+            p.scan.step_size_x = p.scan.step_size_x * nx;
+            p.scan.step_size_y = p.scan.step_size_y * ny;
+        end
     end
 end
 
@@ -89,7 +106,7 @@ end
 if isfield(p.detector, 'sim') && p.detector.sim
     if isfield(p.detector, 'beam_dose') && ~isempty(p.detector.beam_dose)
         utils.verbose(2, "Scaling data to dose: %.1f e/A^2", p.detector.beam_dose);
-        if ~(isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster")
+        if ~(isfield(p, 'src_positions') && p.src_positions == 'matlab_pos' && isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster")
             error("Option 'beam_dose' requires a raster scan");
         end
         area = p.scan.step_size_x * p.scan.step_size_y; % A^2
@@ -112,30 +129,39 @@ else
     data = data ./ 375;
 end
 
-% flip scan
-data = data(:, :, nx:-1:1, ny:-1:1);
+if isfield(p.detector, 'tile') && ~isempty(p.detector.tile) && ~all(p.detector.tile == 1)
+    % tile patterns (useful for simulation)
+    tile = num2cell(p.detector.tile);
+    [tile_x, tile_y] = tile{:};
+    utils.verbose(1, "Tiling data %dx%d in realspace", tile_x, tile_y);
+
+    if ~(isfield(p, 'src_positions') && p.src_positions == "matlab_pos" && isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster")
+        error("Option 'tile' requires a raster scan");
+    end
+
+    % tile in output orientation
+    data = repmat(data, 1, 1, tile_x, tile_y);
+    nx = nx * tile_x;
+    ny = ny * tile_y;
+
+    % and re-generate scan
+    p.scan.nx = p.scan.nx * tile_x;
+    p.scan.ny = p.scan.ny * tile_y;
+    utils.verbose(1, "Re-generating tiled scan...");
+    p = scans.read_positions(p);
+    p = core.ptycho_adjust_positions(p);
+
+    utils.verbose(3, "Old object size: %dx%d", p.object_size(1), p.object_size(2));
+    % and update object size
+    p.object_size = p.asize + max(ceil(p.positions),[],1) + p.positions_pad;
+    utils.verbose(2, "New object size: %dx%d", p.object_size(1), p.object_size(2));
+end
 
 if isfield(p, 'src_positions') && p.src_positions == "matlab_pos"
     % check raster scan dimensions
     if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster" && (ny ~= p.scan.ny || nx ~= p.scan.nx)
         utils.verbose(1, "Warning: Specified raster scan size %dx%d does not match actual scan size %dx%d", p.scan.nx, p.scan.ny, nx, ny);
     end
-end
-
-if isfield(p, 'tile') && ~isempty(p.tile) && ~all(p.tile == 1)
-    % tile patterns (useful for simulation)
-    tile = num2cell(p.tile);
-    [tile_x, tile_y] = tile{:};
-    utils.verbose(1, "Tiling data '%dx%d' in realspace", tile_x, tile_y);
-
-    % tile in output orientation
-    data = repmat(data, 1, 1, tile_y, tile_x);
-
-    if isfield(p, 'scan') && isfield(p.scan, 'type') && p.scan.type == "raster"
-        p.scan.nx = p.scan.nx * tile_y;
-        p.scan.ny = p.scan.ny * tile_x;
-    end
-    p.scanidxs{1, 1} = 1:nx*ny;
 end
 
 if isfield(p.detector, 'poisson') && ~isempty(p.detector.poisson) && p.detector.poisson

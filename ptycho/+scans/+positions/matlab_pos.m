@@ -20,18 +20,14 @@ for ii = 1:p.numscans
                 end
             end
 
-            for iy=1:length(scan_order_y) %modified by YJ. seems odd to begin with 0...
-                for ix=1:length(scan_order_x)
-                    xy = [scan_order_y(iy) * p.scan.step_size_y, scan_order_x(ix) * p.scan.step_size_x] + ...
-                            randn(1,2).*p.scan.step_randn_offset.*[ p.scan.step_size_y,  p.scan.step_size_x];
-                    positions_real(end+1,:) = xy; %#ok<AGROW>
-                end
-            end
-            
+            [xx, yy] = ndgrid(scan_order_x .* p.scan.step_size_x, scan_order_y .* p.scan.step_size_y);
+            positions_real = [reshape(yy, [], 1), reshape(xx, [], 1)];
+            positions_real = -positions_real + randn(numel(xx), 2) .* p.scan.step_randn_offset .* [p.scan.step_size_y, p.scan.step_size_x];
+
             if isfield(p.scan, 'custom_flip') && p.scan.custom_flip(3) % switch x/y by ZC
             	positions_real=fliplr(positions_real);
             end
-            
+
         case 'round'
             dr = (p.scan.radius_out - p.scan.radius_in)/ p.scan.nr;
             for ir=1:p.scan.nr+1
@@ -43,7 +39,7 @@ for ii = 1:p.numscans
                     positions_real(end+1,:) = xy; %#ok<AGROW>
                 end
             end
-            
+
         case 'round_roi'
             rmax = sqrt((p.scan.lx/2)^2 + (p.scan.ly/2)^2);
             nr = 1 + floor(rmax/p.scan.dr);
@@ -59,7 +55,7 @@ for ii = 1:p.numscans
                     positions_real(end+1,:) = xy; %#ok<AGROW>
                 end
             end
-            
+
         case 'fermat'
             % this should be changed to have the same variable
             % conventions as in its spec implementation
@@ -84,7 +80,7 @@ for ii = 1:p.numscans
                     positions_real(end+1,:) = xy;
                 end
             end
-            
+
         case 'custom' %for PSI's data
             fn_splt = strsplit(p.scan.custom_positions_source,'.');
             if length(fn_splt)>1
@@ -112,7 +108,7 @@ for ii = 1:p.numscans
                     error('Could not find function or data file %s', p.scan.custom_positions_source);
                 end
             end
-            
+
         case 'custom_GPU' %added by YJ for customized GPU engines' output
             if ~isempty(p.scan.custom_positions_source) %guess the position file name from base path
                 pos_file = p.scan.custom_positions_source;
@@ -134,7 +130,7 @@ for ii = 1:p.numscans
             catch
                 error('Failed to load positions from %s', pos_file);
             end
-        
+
         case 'list' % custom positions list stored in data
             if isempty(p.scan.scan_positions) || ~ndims(p.scan.scan_positions)
                 error("scan_positions must be given as a list of probe positions");
@@ -147,7 +143,6 @@ for ii = 1:p.numscans
                 % flatten 3D arrays into 2D
                 positions_real = reshape(positions_real, numel(positions_real) / 2, 2);
             end
-            positions_real = flip(positions_real, 2); % flip [x, y] to [y, x]
         otherwise
             error('Unknown scan type %s.', p.scan.type);
     end
